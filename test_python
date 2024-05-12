@@ -1,0 +1,108 @@
+data_num = [0, 1, 2, 3, 4, 5]
+
+# Initialize variable to keep track of current number
+current_num = 0
+
+# Iterate over each row
+for i in range(len(data_num)):
+    #print("value of i", i)
+    # Iterate over each column in the row
+    for j in range(i + 1):
+        #print("the value of i " + str(i) + " and j " + str(j))
+        if current_num < len(data_num):
+            # Print the current number followed by a space
+            print(data_num[current_num], end=" ")
+            # Move to the next number
+            current_num += 1
+
+
+    # Move to the next line after printing each row
+    print()
+
+
+import math
+
+from more_itertools import chunked
+
+def find_largest_num(numbers):
+    if not numbers:
+        return None
+
+    largest = numbers[0]
+
+    for num in numbers[1:]:
+        if num > largest:
+            largest = num
+    return largest
+
+def find_reverse_str(str):
+    return str[::-1]
+
+def find_pallindrome_str(str):
+    if str[::1] == str[::-1]:
+        return ("The Given String " + str + " is a pallindrom")
+    else:
+        return ("The Given String " + str + " is Not a  pallindrom")
+
+def find_factorial_number(num):
+    if num < 0:
+        return None
+    elif num == 0:
+        return 0
+    else:
+        result = 1
+        for i in range (1,num+1):
+            result *= i
+        return result
+
+def find_fibonacci_series(num):
+    fib_seq= []
+    a,b = 0,1
+    for _ in range (num):
+        fib_seq.append(a)
+        a , b = b, a + b
+    return fib_seq
+
+def find_sum_of_digits(num):
+    num_str = str(num)
+    digit_sum = 0
+    for digit in num_str:
+        digit_sum += int(digit)
+    return digit_sum
+
+def find_vowels_string(str):
+    vowel = []
+    # Define a set of vowels
+    vowels_set = {'a', 'e', 'i', 'o', 'u'}
+    for letters in str:
+        if letters.lower() in vowels_set:
+            vowel.append(letters)
+    return len(vowel)
+
+def find_prime_number(num):
+    if num <=1:
+        return False
+    else:
+        for i in range(2,int(math.sqrt(num)) + 1):
+            if num % i == 0:
+                return False
+            return True
+
+# Define the chunked function
+def chunked_task(sequence, chunk_size):
+# Enumerate over the chunks
+    for index, task_chunk in enumerate(chunked(sequence, chunk_size)):
+        print(f"Chunk {index}: {task_chunk}")
+
+
+numbers = [10,200,20,30,40,5,100,0]
+string_org = "TENET"
+print(find_largest_num(numbers))
+print(find_reverse_str(string_org))
+print(find_pallindrome_str(string_org))
+print("The factorial ",find_factorial_number(5))
+print("The fibiocci serires for",find_fibonacci_series(10))
+print("The sum of digits", find_sum_of_digits(280219))
+print("Find the vowels in a string", find_vowels_string("elephant"))
+print("Find the number is prime",find_prime_number(15))
+chunked_task(['task_1', 'task_2', 'task_3', 'task_4', 'task_5', 'task_6'],5)
