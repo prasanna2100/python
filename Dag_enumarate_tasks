@@ -1,0 +1,14 @@
+        for index, task in enumerate(chunked(airtable_tasks, 5)):
+            globals()[f"dummy_wait_{index}"] = EmptyOperator(
+                task_id=f"dummy_wait_{index}", dag=dag
+            )
+            if index == 0:
+                for t in task:
+                    init >> t >> globals()[f"dummy_wait_{index}"]
+            else:
+                for t in task:
+                    (
+                        globals()[f"dummy_wait_{index -1}"]
+                        >> t
+                        >> globals()[f"dummy_wait_{index}"]
+                    )
