@@ -6,6 +6,7 @@ from airflow.utils.dates import days_ago
 import requests
 import json
 from more_itertools import chunked  # To split tasks into chunks
+from airflow.providers.postgres.operators.postgres import PostgresOperator
 
 # Airtable API Credentials
 API_KEY = "your_api_key"
@@ -86,6 +87,14 @@ generate_tasks = PythonOperator(
     python_callable=create_dynamic_tasks,
     provide_context=True,
     dag=dag
+)
+
+# Redshift COPY Task
+postgres_task = PostgresOperator(
+    task_id="run_postgres_query",
+    postgres_conn_id="my_postgres_conn",
+    sql="Load_S3_redshift.sql",
+    dag=dag,
 )
 
 # DAG Task Dependencies
