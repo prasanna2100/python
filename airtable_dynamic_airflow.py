@@ -98,4 +98,4 @@ postgres_task = PostgresOperator(
 )
 
 # DAG Task Dependencies
-init >> fetch_airtable_tables >> generate_tasks >> final
+init >> fetch_airtable_tables >> generate_tasks >> run_postgres_query >> final
