@@ -140,10 +140,104 @@ def create_dynamic_tasks(**kwargs):
     globals()[f"dummy_wait_{index}"] >> final
 ✅ What This Does:
 
-Pulls table names from XCom (previous task output).
-Handles errors if no table names are found.
-Uses chunked(airtable_tasks, 5) → Splits table names into groups of 5 tasks per batch.
-Creates dynamic tasks using EmptyOperator for each table.
+This code is dynamically chunking a list of tasks into groups of 5, creating EmptyOperators as dummy tasks for managing dependencies, and linking them together in a structured DAG workflow. Let's break it down step by step.
+
+1. Understanding the Components
+chunked(airtable_tasks, 5)
+This function splits the list airtable_tasks into sub-lists of 5 tasks each.
+EmptyOperator
+A dummy operator in Airflow that serves as a placeholder for better task structuring.
+Dynamic Task Creation
+Uses globals()[f"dummy_wait_{index}"] to dynamically create and reference task variables.
+Task Dependencies
+The script links groups of tasks in sequence using dummy wait tasks.
+2. Code Breakdown
+Step 1: Chunking Tasks into Groups of 5
+python
+Copy
+Edit
+for index, task_group in enumerate(chunked(airtable_tasks, 5)):
+chunked(airtable_tasks, 5):
+Splits airtable_tasks (list of table names) into groups of 5.
+Example: If airtable_tasks = ['table1', 'table2', ..., 'table12'], it would create:
+python
+Copy
+Edit
+[
+    ['table1', 'table2', 'table3', 'table4', 'table5'], 
+    ['table6', 'table7', 'table8', 'table9', 'table10'],
+    ['table11', 'table12']
+]
+enumerate(chunked(...)):
+Iterates over these chunks, tracking their index (0, 1, 2, ...).
+Step 2: Creating Dummy Wait Tasks
+python
+Copy
+Edit
+globals()[f"dummy_wait_{index}"] = EmptyOperator(
+    task_id=f"dummy_wait_{index}", dag=dag
+)
+Dynamically creates a dummy EmptyOperator
+These act as checkpoints between groups of tasks.
+Example: Creates dummy_wait_0, dummy_wait_1, dummy_wait_2, etc.
+Step 3: Creating Processing Tasks
+python
+Copy
+Edit
+for table_name in task_group:
+    task = EmptyOperator(task_id=f"process_{table_name}", dag=dag)
+Iterates through each table name in the current group.
+Creates an EmptyOperator named process_<table_name>.
+Example: If processing ['table1', 'table2', 'table3'], it creates:
+python
+Copy
+Edit
+task_id="process_table1"
+task_id="process_table2"
+task_id="process_table3"
+Step 4: Linking Tasks
+python
+Copy
+Edit
+if index == 0:
+    init >> task >> globals()[f"dummy_wait_{index}"]
+else:
+    globals()[f"dummy_wait_{index - 1}"] >> task >> globals()[f"dummy_wait_{index}"]
+If this is the first group (index == 0):
+It links the init task → process_tableX → dummy_wait_0.
+Otherwise (for later groups):
+It links dummy_wait_<previous_index> → process_tableX → dummy_wait_<current_index>.
+Step 5: Linking Final Dummy Task to End
+python
+Copy
+Edit
+globals()[f"dummy_wait_{index}"] >> final
+The last dummy_wait task is linked to the final task, ensuring completion.
+3. Example DAG Execution Flow
+Let's assume we have 12 tables (table1 to table12). The DAG structure will look like:
+
+kotlin
+Copy
+Edit
+init 
+ │
+ ├── process_table1  ──┐
+ ├── process_table2  ──┤
+ ├── process_table3  ──┤  → dummy_wait_0 
+ ├── process_table4  ──┤
+ ├── process_table5  ──┘
+      │
+ ├── process_table6  ──┐
+ ├── process_table7  ──┤
+ ├── process_table8  ──┤  → dummy_wait_1
+ ├── process_table9  ──┤
+ ├── process_table10 ──┘
+      │
+ ├── process_table11 ──┐
+ ├── process_table12 ──┘  → dummy_wait_2
+      │
+    final
+
 Uses globals() to dynamically store dummy tasks (dummy_wait_{index}) for workflow structuring.
 8️⃣ Define Airflow Task to Generate Dynamic Tasks
 python
