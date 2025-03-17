@@ -6,9 +6,7 @@ Dynamically create Airflow tasks for each table.
 Organize tasks into groups (chunks of 5) for better execution management.
 📌 Breakdown of Each Part in Detail
 1️⃣ Import Required Libraries
-python
-Copy
-Edit
+
 from airflow import DAG
 from airflow.providers.http.operators.http import SimpleHttpOperator
 from airflow.operators.python import PythonOperator
@@ -26,9 +24,7 @@ EmptyOperator → Placeholder tasks to control workflow dependencies.
 requests & json → Used to call Airtable API and parse JSON responses.
 chunked (from more_itertools) → Splits a list of tasks into smaller groups of 5 for batch processing.
 2️⃣ Define API Credentials & Request Headers
-python
-Copy
-Edit
+
 # Airtable API Credentials
 API_KEY = "your_api_key"
 BASE_ID = "your_base_id"
@@ -45,9 +41,7 @@ Stores Airtable API credentials (API Key & Base ID).
 Constructs API URL to fetch metadata (list of tables).
 Sets up HTTP headers required for authentication.
 3️⃣ Define Airflow DAG
-python
-Copy
-Edit
+
 dag = DAG(
     "airtable_dynamic_tasks",
     default_args={"owner": "airflow"},
@@ -63,9 +57,7 @@ schedule_interval=None → Runs only when triggered manually (no automatic sched
 start_date=days_ago(1) → Ensures the DAG is ready to run immediately.
 catchup=False → Prevents Airflow from running past missed scheduled runs.
 4️⃣ Define Workflow Structure Using Empty Operators
-python
-Copy
-Edit
+
 init = EmptyOperator(task_id="start", dag=dag)
 final = EmptyOperator(task_id="end", dag=dag)
 ✅ What This Does:
@@ -73,9 +65,7 @@ final = EmptyOperator(task_id="end", dag=dag)
 Creates a start (init) and end (final) task to structure the DAG.
 Helps maintain a clear execution flow (all tasks begin after init and must complete before final).
 5️⃣ Function to Fetch Airtable Metadata
-python
-Copy
-Edit
+
 def get_airtable_tables(**kwargs):
     response = requests.get(AIRTABLE_API_URL, headers=HEADERS)
 
@@ -94,9 +84,7 @@ Extracts table names from JSON response and stores them in airtable_tasks.
 Stores table names in XCom (kwargs['ti'].xcom_push) → This allows downstream tasks to retrieve the data.
 Handles API errors by raising a ValueError if the API call fails.
 6️⃣ Define Airflow Task to Fetch Airtable Tables
-python
-Copy
-Edit
+
 fetch_airtable_tables = PythonOperator(
     task_id="fetch_airtable_tables",
     python_callable=get_airtable_tables,
@@ -109,9 +97,7 @@ Defines a Python task (fetch_airtable_tables).
 Runs the get_airtable_tables function.
 Enables context passing (provide_context=True) so that XCom can store table names for later retrieval.
 7️⃣ Function to Dynamically Create Tasks for Each Table
-python
-Copy
-Edit
+
 def create_dynamic_tasks(**kwargs):
     ti = kwargs['ti']
     airtable_tasks = ti.xcom_pull(task_ids="fetch_airtable_tables", key="airtable_tables")
@@ -153,16 +139,12 @@ Task Dependencies
 The script links groups of tasks in sequence using dummy wait tasks.
 2. Code Breakdown
 Step 1: Chunking Tasks into Groups of 5
-python
-Copy
-Edit
+
 for index, task_group in enumerate(chunked(airtable_tasks, 5)):
 chunked(airtable_tasks, 5):
 Splits airtable_tasks (list of table names) into groups of 5.
 Example: If airtable_tasks = ['table1', 'table2', ..., 'table12'], it would create:
-python
-Copy
-Edit
+
 [
     ['table1', 'table2', 'table3', 'table4', 'table5'], 
     ['table6', 'table7', 'table8', 'table9', 'table10'],
@@ -171,9 +153,7 @@ Edit
 enumerate(chunked(...)):
 Iterates over these chunks, tracking their index (0, 1, 2, ...).
 Step 2: Creating Dummy Wait Tasks
-python
-Copy
-Edit
+
 globals()[f"dummy_wait_{index}"] = EmptyOperator(
     task_id=f"dummy_wait_{index}", dag=dag
 )
@@ -181,24 +161,18 @@ Dynamically creates a dummy EmptyOperator
 These act as checkpoints between groups of tasks.
 Example: Creates dummy_wait_0, dummy_wait_1, dummy_wait_2, etc.
 Step 3: Creating Processing Tasks
-python
-Copy
-Edit
+
 for table_name in task_group:
     task = EmptyOperator(task_id=f"process_{table_name}", dag=dag)
 Iterates through each table name in the current group.
 Creates an EmptyOperator named process_<table_name>.
 Example: If processing ['table1', 'table2', 'table3'], it creates:
-python
-Copy
-Edit
+
 task_id="process_table1"
 task_id="process_table2"
 task_id="process_table3"
 Step 4: Linking Tasks
-python
-Copy
-Edit
+
 if index == 0:
     init >> task >> globals()[f"dummy_wait_{index}"]
 else:
@@ -208,9 +182,7 @@ It links the init task → process_tableX → dummy_wait_0.
 Otherwise (for later groups):
 It links dummy_wait_<previous_index> → process_tableX → dummy_wait_<current_index>.
 Step 5: Linking Final Dummy Task to End
-python
-Copy
-Edit
+
 globals()[f"dummy_wait_{index}"] >> final
 The last dummy_wait task is linked to the final task, ensuring completion.
 3. Example DAG Execution Flow
@@ -240,9 +212,7 @@ init
 
 Uses globals() to dynamically store dummy tasks (dummy_wait_{index}) for workflow structuring.
 8️⃣ Define Airflow Task to Generate Dynamic Tasks
-python
-Copy
-Edit
+
 generate_tasks = PythonOperator(
     task_id="generate_tasks",
     python_callable=create_dynamic_tasks,
@@ -254,9 +224,7 @@ generate_tasks = PythonOperator(
 Calls create_dynamic_tasks, which reads table names and dynamically creates tasks.
 Uses context passing (provide_context=True) to fetch data from XCom.
 9️⃣ Define DAG Task Execution Order
-python
-Copy
-Edit
+
 init >> fetch_airtable_tables >> generate_tasks >> final
 ✅ What This Does:
 
